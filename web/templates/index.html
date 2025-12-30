@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Generator Web</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🧩 Puzzle Generator Web</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 20px; font-size: 0.95em;">
+            Crea puzzles 3D con visualización espectacular e imprime en tu impresora 3D
+        </p>
+        
+        <!-- Configuration Panel -->
+        <div class="panel config-panel">
+            <h2>⚙️ Configuración del Puzzle</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Filas (M):</label>
+                    <input type="number" id="M" value="5" min="2" max="20">
+                </div>
+                <div class="form-group">
+                    <label>Columnas (N):</label>
+                    <input type="number" id="N" value="6" min="2" max="20">
+                </div>
+                <div class="form-group">
+                    <label>Tamaño mínimo (celdas):</label>
+                    <input type="number" id="min_size" value="3" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label>Tamaño máximo (celdas):</label>
+                    <input type="number" id="max_size" value="4" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label>Modo:</label>
+                    <select id="mode">
+                        <option value="Fast (original)">Rápido (original)</option>
+                        <option value="Force minimum">Forzar mínimo</option>
+                        <option value="Balanced" selected>Equilibrado</option>
+                        <option value="Strategic">Estratégico</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bordes bloqueados:</label>
+                    <select id="border_prob">
+                        <option value="0">0%</option>
+                        <option value="25" selected>25%</option>
+                        <option value="50">50%</option>
+                        <option value="75">75%</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Celdas aire:</label>
+                    <select id="air_prob">
+                        <option value="0" selected>0%</option>
+                        <option value="5">5%</option>
+                        <option value="10">10%</option>
+                        <option value="15">15%</option>
+                    </select>
+                </div>
+            </div>
+            <button id="generate-btn" class="btn btn-primary">▶ Generar Puzzle</button>
+        </div>
+
+        <!-- Status -->
+        <div id="status" class="status"></div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-area">
+            <div class="canvas-section">
+                <h3>🧩 Puzzle</h3>
+                <div class="view-controls">
+                    <button class="view-btn active" id="btn-isometric" onclick="switchView(event, 'isometric')">Isométrico</button>
+                    <button class="view-btn" id="btn-flat" onclick="switchView(event, 'flat')">Plano</button>
+                </div>
+                <canvas id="puzzle-canvas" width="600" height="600"></canvas>
+            </div>
+            <div class="canvas-section">
+                <h3>🎨 Galería de Piezas</h3>
+                <canvas id="gallery-canvas" width="500" height="600"></canvas>
+            </div>
+        </div>
+
+        <!-- Solutions Panel -->
+        <div class="panel solutions-panel">
+            <h2>🔍 Buscar Soluciones</h2>
+            <div class="solution-controls">
+                <button id="solve-10-btn" class="btn">Buscar 10 soluciones</button>
+                <button id="solve-50-btn" class="btn">Buscar 50 soluciones</button>
+                <button id="prev-btn" class="btn">◀ Anterior</button>
+                <button id="next-btn" class="btn">▶ Siguiente</button>
+                <button id="original-btn" class="btn">Original</button>
+            </div>
+            <div id="solution-info" class="solution-info">Solución: 0 (Original) | Encontradas: 0</div>
+        </div>
+
+        <!-- Export Panel -->
+        <div class="panel export-panel">
+            <h2>🖨️ Exportar a STL para Impresión 3D</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Tamaño cubo (mm):</label>
+                    <input type="number" id="stl_cube_size" value="10" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Altura piezas (mm):</label>
+                    <input type="number" id="stl_height" value="2" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Tolerancia (mm):</label>
+                    <input type="number" id="stl_tolerance" value="0.3" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Separación (mm):</label>
+                    <input type="number" id="stl_gap" value="5" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Tamaño borde base (mm):</label>
+                    <input type="number" id="stl_border" value="5" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Espesor base (mm):</label>
+                    <input type="number" id="stl_base_thickness" value="1" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Altura paredes (mm):</label>
+                    <input type="number" id="stl_wall_height" value="2" step="0.5">
+                </div>
+            </div>
+            <div class="export-buttons">
+                <button id="export-stl-btn" class="btn btn-success">Descargar STL (Base + Piezas)</button>
+            </div>
+            <!-- Status específico del visor/export -->
+            <div id="status-viewer" class="status"></div>
+            
+            <h3 style="margin-top: 20px;">📦 Vista Previa 3D</h3>
+            <div id="viewer-3d" style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9fafb;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- STL Loader -->
+    <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
