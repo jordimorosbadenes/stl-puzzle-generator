@@ -22,7 +22,15 @@ except Exception:
 
 app = Flask(__name__)
 ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()] or ["*"]
-CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}}, supports_credentials=False)
+CORS(
+    app,
+    resources={
+        r"/api/*": {"origins": ALLOWED_ORIGINS},
+        r"/health": {"origins": ALLOWED_ORIGINS},
+        r"/static/*": {"origins": ALLOWED_ORIGINS},
+    },
+    supports_credentials=False,
+)
 
 # =============================
 # PARÁMETROS
